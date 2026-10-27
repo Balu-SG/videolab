@@ -7,6 +7,7 @@ Built for the Meta Global AI Developer Hackathon (Push the Frontier). **All code
 ## Status
 
 - Day 1: SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
+- Day 4: Muse Spark lab partner (`backend/agent.py`, Responses API tool loop) with five deterministic tools (`plan_experiment`, `check_quality`, `analyze_run`, `compare_runs`, `explain_physics`). Every number carries a ref like `[r1.g]`, and `backend/grounding.py` flags any number in the answer that no tool returned. FastAPI: `/runs`, `/runs/{id}`, `/runs/{id}/video`, `POST /runs` (upload -> SAM -> analysis), `POST /chat`.
 - Day 3: physics fits (pendulum: circle-fit length + damped, amplitude-corrected period; free fall: auto release/impact + parabola; spring: damped oscillation -> k) with calibration-aware uncertainties, plus `backend/pipeline.py` (track -> sheet -> metres -> fit -> ghost overlay in pixels). On the synthetic clips with SAM 3.1 tracks: pendulum g 9.76 ± 0.07, free-fall g 9.71 ± 0.06, spring k 20.00 ± 0.02 N/m (true 9.81 and 20.0).
 - Day 2: A4 sheet detection (threshold sweep, midpoint re-cut, sub-pixel edge-line corners) and the pixel -> metre homography. `scripts/check_geometry.py` reports corner, offset and scale error.
 
@@ -31,4 +32,11 @@ uv pip install -r requirements.txt
 
 ```bash
 .venv/bin/uvicorn backend.main:app --reload
+```
+
+## Ask the lab partner
+
+```bash
+.venv/bin/python scripts/new_run.py ../clips/synthetic_pendulum.mp4 pendulum --concept "orange ball" --predict period 1.5 s
+.venv/bin/python scripts/ask.py "I filmed run r1 and predicted 1.5 s. Why was I off?"
 ```
