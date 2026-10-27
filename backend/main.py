@@ -3,43 +3,69 @@ import shutil
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import cv2
+import numpy as np
+from fastapi import APIRouter, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import runs, sam
 from .agent import LabAgent
-from .config import OUTPUT_DIR
+from .config import OUTPUT_DIR, REPO_DIR
 from .pipeline import EXPERIMENTS, AnalysisError, analyze
-from .tools import check_quality
+from .preflight import check_frame
+from .tools import check_quality, plan_experiment
 
 app = FastAPI(title="VideoLab")
+api = APIRouter(prefix="/api")
 UPLOAD_DIR = OUTPUT_DIR / "uploads"
 _sessions: dict[str, LabAgent] = {}
 
 
-@app.get("/health")
+@api.get("/health")
 def health() -> dict:
     return {"ok": True}
 
 
-@app.get("/runs")
+@api.get("/plan/{experiment}")
+def plan(experiment: str) -> dict:
+    result = plan_experiment(experiment)
+    if "error" in result:
+        raise HTTPException(404, result["error"])
+    return result
+
+
+@api.post("/preflight")
+async def preflight(image: UploadFile = File(...)) -> dict:
+    data = np.frombuffer(await image.read(), np.uint8)
+    frame = cv2.imdecode(data, cv2.IMREAD_COLOR)
+    if frame is None:
+        raise HTTPException(400, "could not read the image")
+    return await asyncio.to_thread(check_frame, frame)
+
+
+@api.get("/runs")
 def list_runs() -> list[dict]:
     return runs.list_runs()
 
 
-@app.get("/runs/{run_id}")
+@api.get("/runs/{run_id}")
 def get_run(run_id: str) -> dict:
     try:
         run = runs.load(run_id)
     except KeyError as e:
         raise HTTPException(404, str(e))
-    run.pop("track", None)  # large; the analysis has everything the UI draws
+    track = run.pop("track", None)  # large; the UI only needs the tracked centre per frame
+    if track and track["points"]:
+        main_id = _main_object(track)
+        pts = sorted((p for p in track["points"] if p["object_id"] == main_id), key=lambda p: p["frame"])
+        run["track_px"] = {"frames": [p["frame"] for p in pts], "xy": [[round(p["cx"], 1), round(p["cy"], 1)] for p in pts]}
     run["quality"] = check_quality(run_id)
     return run
 
 
-@app.get("/runs/{run_id}/video")
+@api.get("/runs/{run_id}/video")
 def get_video(run_id: str) -> FileResponse:
     try:
         run = runs.load(run_id)
@@ -48,7 +74,7 @@ def get_video(run_id: str) -> FileResponse:
     return FileResponse(run["video"])
 
 
-@app.post("/runs")
+@api.post("/runs")
 async def create_run(
     video: UploadFile = File(...),
     experiment: str = Form(...),
@@ -92,9 +118,22 @@ class ChatIn(BaseModel):
     session_id: str | None = None
 
 
-@app.post("/chat")
+@api.post("/chat")
 async def chat(body: ChatIn) -> dict:
     session_id = body.session_id or uuid.uuid4().hex
     agent = _sessions.setdefault(session_id, LabAgent())
     result = await asyncio.to_thread(agent.ask, body.message)
     return {"session_id": session_id, **result}
+
+
+def _main_object(track: dict) -> str:
+    ids = [p["object_id"] for p in track["points"]]
+    return max(set(ids), key=ids.count)
+
+
+app.include_router(api)
+
+# The built front end, served from the same origin in production.
+_DIST = REPO_DIR / "frontend" / "dist"
+if _DIST.exists():
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="frontend")

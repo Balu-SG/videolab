@@ -7,6 +7,7 @@ Built for the Meta Global AI Developer Hackathon (Push the Frontier). **All code
 ## Status
 
 - Day 1: SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
+- Day 5: phone-first React app (`frontend/`): plan → live pre-flight camera check (A4 sheet, lighting, sharpness from the sheet's edge width, camera angle, clutter) → predict → record → results with the ghost overlay, measurement cards, fit chart, run quality, and the lab-partner chat. Every cited number is a chip that jumps the video to its frames and opens its evidence.
 - Day 4: Muse Spark lab partner (`backend/agent.py`, Responses API tool loop) with five deterministic tools (`plan_experiment`, `check_quality`, `analyze_run`, `compare_runs`, `explain_physics`). Every number carries a ref like `[r1.g]`, and `backend/grounding.py` flags any number in the answer that no tool returned. FastAPI: `/runs`, `/runs/{id}`, `/runs/{id}/video`, `POST /runs` (upload -> SAM -> analysis), `POST /chat`.
 - Day 3: physics fits (pendulum: circle-fit length + damped, amplitude-corrected period; free fall: auto release/impact + parabola; spring: damped oscillation -> k) with calibration-aware uncertainties, plus `backend/pipeline.py` (track -> sheet -> metres -> fit -> ghost overlay in pixels). On the synthetic clips with SAM 3.1 tracks: pendulum g 9.76 ± 0.07, free-fall g 9.71 ± 0.06, spring k 20.00 ± 0.02 N/m (true 9.81 and 20.0).
 - Day 2: A4 sheet detection (threshold sweep, midpoint re-cut, sub-pixel edge-line corners) and the pixel -> metre homography. `scripts/check_geometry.py` reports corner, offset and scale error.
@@ -31,7 +32,9 @@ uv pip install -r requirements.txt
 ## Run the API
 
 ```bash
-.venv/bin/uvicorn backend.main:app --reload
+.venv/bin/uvicorn backend.main:app --port 8010 --reload
+# front end dev server (proxies /api to 8010): cd frontend && npm run dev
+# production: cd frontend && npm run build, then uvicorn serves frontend/dist at /
 ```
 
 ## Ask the lab partner
