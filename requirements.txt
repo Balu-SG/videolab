@@ -5,3 +5,5 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 numpy
+opencv-python-headless
+scipy

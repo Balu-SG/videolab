@@ -6,7 +6,8 @@ Built for the Meta Global AI Developer Hackathon (Push the Frontier). **All code
 
 ## Status
 
-Day 1: SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
+- Day 1: SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
+- Day 2: A4 sheet detection (threshold sweep, midpoint re-cut, sub-pixel edge-line corners) and the pixel -> metre homography. `scripts/check_geometry.py` reports corner, offset and scale error.
 
 ## Setup
 
