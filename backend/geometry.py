@@ -11,6 +11,7 @@ import numpy as np
 
 A4_SHORT_M = 0.210
 A4_LONG_M = 0.297
+CORNER_SIGMA_PX = 1.0
 
 
 @dataclass
@@ -25,9 +26,17 @@ class SheetFit:
     def size_m(self) -> tuple[float, float]:
         return (A4_SHORT_M, A4_LONG_M) if self.portrait else (A4_LONG_M, A4_SHORT_M)
 
+    @property
+    def scale_sigma(self) -> float:
+        """Relative 1-sigma scale uncertainty, assuming each corner is good to about 1 px."""
+        bl, br, tr, tl = self.corners_px
+        side_px = (np.linalg.norm(br - bl) + np.linalg.norm(tr - tl) + np.linalg.norm(tl - bl) + np.linalg.norm(tr - br)) / 4
+        return float(np.sqrt(2) * CORNER_SIGMA_PX / side_px)
+
     def to_dict(self) -> dict:
         return {
             "corners_px": self.corners_px.round(2).tolist(),
+            "scale_sigma": round(self.scale_sigma, 5),
             "portrait": self.portrait,
             "image_to_m": self.image_to_m.tolist(),
             "reprojection_px": round(self.reprojection_px, 3),
@@ -180,7 +189,7 @@ def fit_sheet(corners_px: np.ndarray, frame_shape: tuple[int, int]) -> SheetFit:
     bl, br, tr, tl = corners_px
     width_px = (np.linalg.norm(br - bl) + np.linalg.norm(tr - tl)) / 2
     height_px = (np.linalg.norm(tl - bl) + np.linalg.norm(tr - br)) / 2
-    portrait = height_px > width_px
+    portrait = bool(height_px > width_px)
     w, h = (A4_SHORT_M, A4_LONG_M) if portrait else (A4_LONG_M, A4_SHORT_M)
     world = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float64)
     H = cv2.getPerspectiveTransform(corners_px.astype(np.float32), world.astype(np.float32)).astype(np.float64)

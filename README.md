@@ -7,6 +7,7 @@ Built for the Meta Global AI Developer Hackathon (Push the Frontier). **All code
 ## Status
 
 - Day 1: SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
+- Day 3: physics fits (pendulum: circle-fit length + damped, amplitude-corrected period; free fall: auto release/impact + parabola; spring: damped oscillation -> k) with calibration-aware uncertainties, plus `backend/pipeline.py` (track -> sheet -> metres -> fit -> ghost overlay in pixels). On the synthetic clips with SAM 3.1 tracks: pendulum g 9.76 ± 0.07, free-fall g 9.71 ± 0.06, spring k 20.00 ± 0.02 N/m (true 9.81 and 20.0).
 - Day 2: A4 sheet detection (threshold sweep, midpoint re-cut, sub-pixel edge-line corners) and the pixel -> metre homography. `scripts/check_geometry.py` reports corner, offset and scale error.
 
 ## Setup
@@ -22,6 +23,8 @@ uv pip install -r requirements.txt
 ```bash
 .venv/bin/python scripts/track_clip.py ../clips/synthetic_pendulum.mp4 --concept "pendulum bob"
 .venv/bin/python scripts/score_track.py output/synthetic_pendulum.track.json ../clips/synthetic_pendulum.json
+.venv/bin/python scripts/check_geometry.py ../clips/synthetic_pendulum.mp4 ../clips/synthetic_pendulum.json
+.venv/bin/python scripts/check_physics.py ../clips/synthetic_pendulum.mp4 ../clips/synthetic_pendulum.json --track output/synthetic_pendulum.track.json
 ```
 
 ## Run the API

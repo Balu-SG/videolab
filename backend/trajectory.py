@@ -14,6 +14,7 @@ class Trajectory:
     x: np.ndarray  # metres in the sheet frame (x right, y up)
     y: np.ndarray
     confidence: np.ndarray
+    scale_sigma: float = 0.0  # relative calibration uncertainty from the sheet fit
 
     def to_dict(self) -> dict:
         return {
@@ -25,7 +26,7 @@ class Trajectory:
         }
 
 
-def from_track(track: dict, image_to_m: np.ndarray, object_id: str | None = None) -> Trajectory:
+def from_track(track: dict, image_to_m: np.ndarray, object_id: str | None = None, scale_sigma: float = 0.0) -> Trajectory:
     points = track["points"]
     if object_id is None:
         ids = [p["object_id"] for p in points]
@@ -35,4 +36,4 @@ def from_track(track: dict, image_to_m: np.ndarray, object_id: str | None = None
     frames = np.array([p["frame"] for p in pts])
     xy_m = to_metres(image_to_m, np.array([[p["cx"], p["cy"]] for p in pts]))
     conf = np.array([p["confidence"] if p["confidence"] is not None else np.nan for p in pts])
-    return Trajectory(frames / track["video"]["fps"], frames, xy_m[:, 0], xy_m[:, 1], conf)
+    return Trajectory(frames / track["video"]["fps"], frames, xy_m[:, 0], xy_m[:, 1], conf, scale_sigma)
