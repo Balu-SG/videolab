@@ -1,0 +1,11 @@
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+clips/
+output/
+*.mp4
+*.mov
+.DS_Store
+node_modules/

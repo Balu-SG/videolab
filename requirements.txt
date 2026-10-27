@@ -1,0 +1,7 @@
+openai>=1.50
+meta-sam-parser>=0.1.0
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+numpy
