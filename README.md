@@ -37,6 +37,16 @@ uv pip install -r requirements.txt
 # production: cd frontend && npm run build, then uvicorn serves frontend/dist at /
 ```
 
+## Deploy (Modal)
+
+The phone camera needs HTTPS, so the hosted app runs on Modal with a volume for runs and uploads. Measuring a clip is a background job (`POST /api/runs` returns a `job_id`, then poll `GET /api/jobs/{job_id}`) because SAM tracking takes minutes. Uploads are capped at 300 MB and 3,600 frames, with daily limits on new runs and chat questions (`VIDEOLAB_MAX_*` in `backend/config.py`).
+
+```bash
+cd frontend && npm run build && cd ..
+.venv/bin/modal secret create videolab-meta MODEL_API_KEY=...   # once
+.venv/bin/modal deploy modal_app.py
+```
+
 ## Ask the lab partner
 
 ```bash

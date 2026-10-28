@@ -82,8 +82,14 @@ export default function App() {
     setUploading(true)
     setError(null)
     try {
-      const r = await api.createRun(form)
-      await openRun(r.run_id, true)
+      const { job_id } = await api.createRun(form)
+      let job = await api.job(job_id)
+      while (job.status === 'running') {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000))
+        job = await api.job(job_id)
+      }
+      if (job.status === 'failed' || !job.run_id) throw new Error(job.error ?? 'measurement failed')
+      await openRun(job.run_id, true)
     } catch (e) {
       setError((e as Error).message)
     } finally {

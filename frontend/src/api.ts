@@ -58,6 +58,12 @@ export interface PreflightResult {
   size: [number, number]
 }
 
+export interface Job {
+  status: 'running' | 'done' | 'failed'
+  run_id: string | null
+  error: string | null
+}
+
 export interface ChatReply {
   session_id: string
   answer: string
@@ -88,7 +94,8 @@ export const api = {
     body.append('image', image, 'frame.jpg')
     return fetch('/api/preflight', { method: 'POST', body }).then((r) => json<PreflightResult>(r))
   },
-  createRun: (form: FormData) => fetch('/api/runs', { method: 'POST', body: form }).then((r) => json<Run>(r)),
+  createRun: (form: FormData) => fetch('/api/runs', { method: 'POST', body: form }).then((r) => json<{ job_id: string }>(r)),
+  job: (id: string) => fetch(`/api/jobs/${id}`).then((r) => json<Job>(r)),
   chat: (message: string, sessionId?: string) =>
     fetch('/api/chat', {
       method: 'POST',

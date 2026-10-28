@@ -2,6 +2,7 @@
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 from .config import OUTPUT_DIR
@@ -40,6 +41,19 @@ def load(run_id: str) -> dict:
         f = d / f"{name}.json"
         run[name] = json.loads(f.read_text()) if f.exists() else None
     return run
+
+
+def video_path(run: dict) -> Path:
+    """Videos under the data dir are stored relative to it, so runs survive a move to another machine."""
+    p = Path(run["video"])
+    return p if p.is_absolute() else OUTPUT_DIR / p
+
+
+def created_today() -> int:
+    if not RUNS_DIR.exists():
+        return 0
+    today = date.today()
+    return sum(1 for f in RUNS_DIR.glob("r*/run.json") if date.fromtimestamp(f.stat().st_mtime) == today)
 
 
 def list_runs() -> list[dict]:
