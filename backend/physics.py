@@ -45,6 +45,7 @@ class FitResult:
 
 
 PERIOD_REL_FLOOR = 5e-4  # frame-clock accuracy and model limits (amplitude-dependent period); stat errors are smaller
+CENTROID_BIAS_PX = 0.25  # systematic offset of a mask centroid from the true centre, from the synthetic benchmark
 
 
 def _damped_cos(t, amp, gamma, omega, phase, offset):
@@ -101,8 +102,13 @@ def fit_pendulum(traj: Trajectory, length_m: float | None = None) -> FitResult:
     if cy < traj.y.max():
         notes.append("circle fit put the pivot below the bob; the path may be too flat or the camera tilted")
     if length_m is None:
-        length, length_sigma = r, float(np.hypot(r_sigma, r * traj.scale_sigma))
-        notes.append(f"length from the path's circle fit: {r:.4f} m")
+        # The arc's sagitta pins the radius. A sub-pixel bias in the tracked centre (mask shape, blur) moves the
+        # sagitta by a fixed amount, so narrow or short swings give a much less certain length.
+        swing = float(np.percentile(np.abs(np.arctan2(traj.x - cx, cy - traj.y)), 98))
+        sagitta = r * (1 - np.cos(swing))
+        r_bias = r * CENTROID_BIAS_PX * traj.m_per_px / max(sagitta, 1e-6)
+        length, length_sigma = r, float(np.sqrt(r_sigma**2 + (r * traj.scale_sigma) ** 2 + r_bias**2))
+        notes.append(f"length from the path's circle fit: {r:.4f} m (arc sagitta {1000 * sagitta:.1f} mm)")
     else:
         length, length_sigma = length_m, 0.002  # tape measure, ±2 mm
         notes.append(f"length entered by the user: {length_m:.4f} m (circle fit says {r:.4f} m)")

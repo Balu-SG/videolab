@@ -30,10 +30,7 @@ async def main() -> None:
             sys.exit("--concept is required without --track")
         video = sam.probe_video(args.video)
         file_id = await sam.upload_video(args.video)
-        points, meta = await sam.track(file_id, args.concept)
-        if points:
-            first = min(points, key=lambda p: p.frame)
-            points, meta = await sam.track_box(file_id, (video["width"], video["height"]), first.frame, first.box, first.object_id)
+        points, meta = await sam.track_clip(file_id, video, args.concept)
         track = sam.to_json(points, video, args.concept, file_id, meta)
 
     analysis = analyze(str(args.video), track, args.experiment, length_m=args.length_m, mass_kg=args.mass_kg)

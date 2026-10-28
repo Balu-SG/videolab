@@ -56,6 +56,11 @@ def check_run(run: dict) -> list[dict]:
     exp = analysis["experiment"]
     duration = (fit["window"][1] - fit["window"][0]) / fps
     if exp == "pendulum":
+        if run.get("length_m") is None:
+            rel = m["length"]["sigma"] / m["length"]["value"]
+            out.append(_check("length_from_arc", "ok" if rel <= 0.02 else "warn", round(rel, 4),
+                              f"length from the swing's arc good to {100 * rel:.1f}%" + ("" if rel <= 0.02 else
+                              "; the arc is too flat to pin the length, so measure the string to the bob's centre and enter it, or swing wider")))
         amp = m["amplitude"]["value"]
         out.append(_check("swing_amplitude", "ok" if amp <= 15 else "warn", round(amp, 2),
                           f"mean swing {amp:.1f}°" + ("" if amp <= 15 else "; above 15° the period depends noticeably on amplitude")))

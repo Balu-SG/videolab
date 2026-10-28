@@ -9,6 +9,7 @@ from meta_sam_parser import (
     FramePrompt,
     PromptBox,
     PromptObject,
+    PromptPoint,
     SegmentationBoxRecord,
     SegmentationMaskRecord,
     build_object_prompt,
@@ -79,6 +80,34 @@ async def track_box(
         objects=[PromptObject(id=object_id, prompts=[FramePrompt(frame=frame, box=PromptBox(*box))])],
     )
     return await _segment(file_id, prompt, {"propagation_direction": "both"})
+
+
+async def track_point(
+    file_id: str, size: tuple[int, int], frame: int, xy: tuple[float, float], object_id: str = "0"
+) -> tuple[list[FramePoint], dict]:
+    """Track the object the user tapped on one frame, in both directions.
+
+    Small or plain objects (a marble seen from 2 m) often don't match any text concept; a tap always names them.
+    """
+    point = PromptPoint(int(round(xy[0])), int(round(xy[1])))
+    prompt = build_object_prompt(size=size, objects=[PromptObject(id=object_id, prompts=[FramePrompt(frame=frame, points=[point])])])
+    return await _segment(file_id, prompt, {"propagation_direction": "both"})
+
+
+async def track_clip(
+    file_id: str, video: dict, concept: str, tap: tuple[int, float, float] | None = None
+) -> tuple[list[FramePoint], dict]:
+    """The app's tracking recipe. A tap (frame, x, y) is used as is; a text concept is followed by a box
+    re-prompt from its first detection, which fills the frames before the concept locked on."""
+    size = (video["width"], video["height"])
+    if tap:
+        frame, x, y = tap
+        return await track_point(file_id, size, frame, (x, y))
+    points, meta = await track(file_id, concept)
+    if points:
+        first = min(points, key=lambda p: p.frame)
+        points, meta = await track_box(file_id, size, first.frame, first.box, first.object_id)
+    return points, meta
 
 
 async def _segment(file_id: str, text: str, extra_metadata: dict) -> tuple[list[FramePoint], dict]:

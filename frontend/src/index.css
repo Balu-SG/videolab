@@ -102,3 +102,10 @@ header { display: flex; align-items: baseline; gap: 10px; padding: 8px 0 14px; }
 .chat-input { display: flex; gap: 8px; }
 .chat-input input { flex: 1; min-height: 46px; margin-top: 12px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; font-size: 16px; min-width: 0; }
 .chat-input .button { width: auto; }
+
+.small { font-size: 0.85rem; }
+.tap-picker { margin: 12px 0; }
+.tap-frame { position: relative; border-radius: 12px; overflow: hidden; background: #000; cursor: crosshair; touch-action: manipulation; }
+.tap-frame video { display: block; width: 100%; pointer-events: none; }
+.tap-mark { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 3px solid var(--accent, #3ddc84); border-radius: 50%; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); pointer-events: none; }
+.tap-picker input[type='range'] { width: 100%; margin-top: 8px; }

@@ -88,6 +88,9 @@ async def create_run(
     predict_quantity: str | None = Form(None),
     predict_value: float | None = Form(None),
     predict_unit: str | None = Form(None),
+    tap_time: float | None = Form(None),
+    tap_x: float | None = Form(None),
+    tap_y: float | None = Form(None),
 ) -> dict:
     """Starts a measurement job. Tracking takes minutes, longer than a hosted request may stay open,
     so the client polls GET /jobs/{job_id}."""
@@ -117,6 +120,10 @@ async def create_run(
         raise HTTPException(413, f"the clip has {info['frames']} frames; trim it to {MAX_FRAMES} or fewer (15 s at 240 fps)")
 
     run_meta = {"video": str(path.relative_to(OUTPUT_DIR)), "experiment": experiment, "concept": concept, "length_m": length_m, "mass_kg": mass_kg}
+    if tap_time is not None and tap_x is not None and tap_y is not None:
+        frame = min(max(int(round(tap_time * info["fps"])), 0), info["frames"] - 1)
+        run_meta["tap"] = [frame, tap_x, tap_y]
+        run_meta["concept"] = f"tap at frame {frame}"
     if predict_quantity and predict_value is not None:
         run_meta["prediction"] = {"quantity": predict_quantity, "value": predict_value, "unit": predict_unit or ""}
     job_id = uuid.uuid4().hex
@@ -137,10 +144,7 @@ async def _measure(job_id: str, path: Path, info: dict, run_meta: dict) -> None:
     job = _jobs[job_id]
     try:
         file_id = await sam.upload_video(path)
-        points, meta = await sam.track(file_id, run_meta["concept"])
-        if points:
-            first = min(points, key=lambda p: p.frame)
-            points, meta = await sam.track_box(file_id, (info["width"], info["height"]), first.frame, first.box, first.object_id)
+        points, meta = await sam.track_clip(file_id, info, run_meta["concept"], run_meta.get("tap"))
         track = sam.to_json(points, info, run_meta["concept"], file_id, meta)
         analysis = await asyncio.to_thread(
             analyze, str(path), track, run_meta["experiment"], length_m=run_meta["length_m"], mass_kg=run_meta["mass_kg"]
@@ -191,6 +195,15 @@ def _main_object(track: dict) -> str:
 
 
 app.include_router(api)
+
+
+@app.middleware("http")
+async def revalidate_pages(request, call_next):
+    """Hashed /assets/ files may be cached forever; the page itself must be revalidated so a redeploy shows up."""
+    response = await call_next(request)
+    if not request.url.path.startswith(("/assets/", "/api/")):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 # The built front end, served from the same origin in production.
 _DIST = REPO_DIR / "frontend" / "dist"

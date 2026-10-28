@@ -3,6 +3,7 @@ import { api, EXPERIMENTS, type Experiment, type Plan, type Run } from './api'
 import { Chat } from './components/Chat'
 import { Preflight } from './components/Preflight'
 import { RunView } from './components/RunView'
+import { TapPicker, type Tap } from './components/TapPicker'
 
 type Step = 'home' | 'plan' | 'preflight' | 'predict' | 'record' | 'result'
 
@@ -23,6 +24,7 @@ export default function App() {
   const [length, setLength] = useState('')
   const [concept, setConcept] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [tap, setTap] = useState<Tap | null>(null)
   const [uploading, setUploading] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export default function App() {
     setPrediction('')
     setConcept(EXPERIMENTS[e].concept)
     setFile(null)
+    setTap(null)
     setError(null)
     api.plan(e).then(setPlan).catch(() => setPlan(null))
     setStep('plan')
@@ -72,6 +75,11 @@ export default function App() {
     form.append('video', file)
     form.append('experiment', experiment)
     form.append('concept', concept || info.concept)
+    if (tap) {
+      form.append('tap_time', String(tap.time))
+      form.append('tap_x', String(tap.x))
+      form.append('tap_y', String(tap.y))
+    }
     if (mass) form.append('mass_kg', mass)
     if (length) form.append('length_m', length)
     if (prediction) {
@@ -185,8 +193,9 @@ export default function App() {
           )}
           {experiment === 'pendulum' && (
             <label className="field">
-              String length to the bob's centre (optional)
-              <span className="with-unit"><input inputMode="decimal" value={length} onChange={(e) => setLength(e.target.value)} placeholder="measured from the swing if blank" /><span>m</span></span>
+              String length, pivot to the bob's centre (recommended)
+              <span className="with-unit"><input inputMode="decimal" value={length} onChange={(e) => setLength(e.target.value)} placeholder="0.50" /><span>m</span></span>
+              <span className="muted small">The period is always precise. Without the length, VideoLab estimates it from the curve of the swing, which is much less certain for short or narrow swings.</span>
             </label>
           )}
           <button className="button" disabled={!prediction || (experiment === 'spring' && !mass)} onClick={() => setStep('record')}>Lock in my prediction</button>
@@ -196,15 +205,18 @@ export default function App() {
       {step === 'record' && (
         <section className="card">
           <h2>Record</h2>
-          <p className="muted">Film in slow motion (240 fps). On iPhone, share the clip with "All Photos Data" so the slow-motion frames are kept.</p>
+          <p className="muted">Film in slow motion (240 fps) with the phone held sideways and steady. On iPhone, share the clip with "All Photos Data" so the slow-motion frames are kept.</p>
           <label className="field">
             Slow-motion video
             <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           </label>
-          <label className="field">
-            What is moving? (colour + shape works best)
-            <input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder={info.concept} />
-          </label>
+          {file && <TapPicker file={file} tap={tap} onTap={setTap} />}
+          {!tap && (
+            <label className="field">
+              Or describe what is moving (colour + shape)
+              <input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder={info.concept} />
+            </label>
+          )}
           {error && <p className="error">{error}</p>}
           <button className="button" disabled={!file || uploading} onClick={upload}>
             {uploading ? `${stage}… ${elapsed}s` : 'Measure'}
