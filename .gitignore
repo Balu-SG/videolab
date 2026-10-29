@@ -10,3 +10,4 @@ output/
 .DS_Store
 node_modules/
 frontend/dist/
+!docs/VideoLab-demo.mp4

@@ -4,6 +4,8 @@ A phone-based physics measurement instrument. Film an experiment in slow motion 
 
 Built for the Meta Global AI Developer Hackathon (Push the Frontier). **All code in this repo was written during the hackathon, starting after the official start on 2026-10-26 (12:00 PM ET).** The commit history shows how it was built.
 
+**Live:** https://balmca28--videolab-web.us-east.modal.run · **Demo video (3 min):** [docs/VideoLab-demo.mp4](docs/VideoLab-demo.mp4)
+
 ## What it does
 
 - SAM 3.1 video tracking, scored against synthetic clips with known ground truth.
